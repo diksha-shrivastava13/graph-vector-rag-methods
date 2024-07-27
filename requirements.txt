@@ -1,0 +1,7 @@
+streamlit
+llama-parse
+llama-index
+llama-index-core
+llama-index-llms-azure-openai
+llama-index-embeddings-openai
+python-dotenv
