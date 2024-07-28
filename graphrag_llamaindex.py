@@ -167,7 +167,7 @@ class GraphRAGExtractor(TransformComponent):
             llm_response = await self.llm.apredict(
                 self.extract_prompt,
                 text=text,
-                max_knowledge_graphs=self.max_paths_per_chunk
+                max_knowledge_triplets=self.max_paths_per_chunk
             )
             entities, entities_relationship = self.parse_fn(llm_response)
         except ValueError:
