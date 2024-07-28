@@ -188,7 +188,7 @@ class GraphRAGExtractor(TransformComponent):
 
         metadata = node.metadata.copy()
         for triple in entities_relationship:
-            subj, rel, obj, description = triple
+            subj, obj, rel, description = triple
             subj_node = EntityNode(name=subj, properties=metadata)
             obj_node = EntityNode(name=obj, properties=metadata)
             metadata["relationship_description"] = description
@@ -451,13 +451,17 @@ text: {text}
 output:
 """
 
-entity_pattern = r'\("entity"\$\$\$\$"(.+?)"\$\$\$\$"(.+?)"\$\$\$\$"(.+?)"\)'
-relationship_pattern = r'\("relationship"\$\$\$\$"(.+?)"\$\$\$\$"(.+?)"\$\$\$\$"(.+?)"\$\$\$\$"(.+?)"\)'
+# Regular expression patterns
+entity_pattern = r'- entity_name: ([\w\s]+)\n   - entity_type: ([\w\s]+)\n   - entity_description: ((?:[\w\s]+(?:\n(?!\- entity_name).*)?)*)'
+relationship_pattern = r'- source_entity: ([\w\s]+)\n   - target_entity: ([\w\s]+)\n   - relation: ([\w\s]+)\n   - relationship_description: ((?:[\w\s]+(?:\n(?!\- source_entity).*)?)*)'
 
 
 def parse_fn(response_str: str) -> Any:
-    entities = re.findall(entity_pattern, response_str)
-    relationships = re.findall(relationship_pattern, response_str)
+    entities = re.findall(entity_pattern, response_str, re.MULTILINE)
+    entities = [(name.strip(), type_.strip(), desc.strip()) for name, type_, desc in entities]
+    relationships = re.findall(relationship_pattern, response_str, re.MULTILINE)
+    relationships = [(source.strip(), target.strip(), relation.strip(), desc.strip()) for source, target, relation, desc
+                     in relationships]
     return entities, relationships
 
 
