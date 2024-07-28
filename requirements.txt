@@ -1,14 +1,16 @@
 # Basic Streamlit App Requirements
-streamlit
+streamlit~=1.36.0
 llama-parse
 llama-index
 llama-index-core
 llama-index-llms-azure-openai
 llama-index-embeddings-openai
-python-dotenv
+python-dotenv~=1.0.1
 
 # GraphRAG Requirements
 llama-index
-graspologic
+graspologic~=3.4.1
 numpy
 scipy
+pandas~=2.2.2
+networkx~=3.2.1
