@@ -116,3 +116,11 @@ Constructing the GraphRAG pipeline:
 2. Build a PropertyGraphIndex using GraphRAGExtractor and GraphRAGStore.
 3. Construct communities and generate a summary for each community using the graph built above.
 4. Create a GraphRAGQueryEngine and begin querying.
+
+### Resources
+
+Learn more about Community Detection algorithms at: 
+* https://bdpedigo.github.io/networks-course/community_detection.html
+* https://arxiv.org/pdf/1810.08473
+* https://neo4j.com/docs/graph-data-science/current/algorithms/leiden/
+
