@@ -55,11 +55,13 @@ from llama_index.core.query_engine import CustomQueryEngine
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import PropertyGraphIndex
 
+print("Imports working successfully")
 nest_asyncio.apply()
 
 # Load Data (bad, bad idea)
 news = pd.read_csv("https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/news_articles.csv")[:50]
 documents = [Document(text=f"{row['title']}: {row['text']}") for index, row in news.iterrows()]
+print("Loaded Data")
 
 # Setup API Key and LLM
 load_dotenv()
@@ -68,6 +70,7 @@ az_openai_api_key = os.getenv("AZURE_OPENAI_API_KEY")
 az_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 llm = AzureOpenAI(engine="gpt-4o", model="gpt-4o", temperature=0.0, api_key=az_openai_api_key,
                   azure_endpoint=az_openai_endpoint)
+print("Configurations up")
 
 # GraphRAGExtractor
 """
@@ -155,6 +158,7 @@ class GraphRAGExtractor(TransformComponent):
         )
 
     async def _aextract(self, node: BaseNode) -> BaseNode:
+        print("in _aextract")
         """Extract triples from a node"""
         assert hasattr(node, "text")
 
@@ -196,6 +200,7 @@ class GraphRAGExtractor(TransformComponent):
 
         node.metadata[KG_NODES_KEY] = existing_nodes
         node.metadata[KG_RELATIONS_KEY] = existing_relations
+        print("in _aextract: done")
         return node
 
     async def acall(self, nodes: List[BaseNode], show_progress: bool = False,
@@ -203,7 +208,7 @@ class GraphRAGExtractor(TransformComponent):
         """Extract triples from nodes async"""
         jobs = []
         for node in nodes:
-            jobs.append(self._extract_triples(node))
+            jobs.append(self._aextract(node))
 
         return await run_jobs(
             jobs,
@@ -264,6 +269,7 @@ class GraphRAGStore(SimplePropertyGraphStore):
         ]
         response = AzureOpenAI.chat(messages)
         clean_response = re.sub(r"^assistant:\s*", "", str(response)).strip()
+        print("generate community summary done")
         return clean_response
 
     def build_communities(self):
@@ -271,7 +277,9 @@ class GraphRAGStore(SimplePropertyGraphStore):
         nx_graph = self._create_nx_graph()
         community_hierarchical_clusters = hierarchical_leiden(nx_graph, max_cluster_size=self.max_cluster_size)
         community_info = self._collect_community_info(nx_graph, community_hierarchical_clusters)
+        print("built communities")
         self._summarize_communities(community_info)
+        print("summarized communities")
 
     def _create_nx_graph(self):
         """Converts internal graph representations to NetworkX graph."""
@@ -285,6 +293,7 @@ class GraphRAGStore(SimplePropertyGraphStore):
                 relationship=relation.label,
                 description=relation.properties["relation_description"]
             )
+        print("nx graph created")
         return nx_graph
 
     def _collect_community_info(self, nx_graph, clusters):
@@ -303,6 +312,7 @@ class GraphRAGStore(SimplePropertyGraphStore):
                     if edge_data:
                         detail = f"{node} -> {neighbor} -> {edge_data['relationship']} -> {edge_data['description']}"
                         community_info[cluster_id].append(detail)
+        print("community info collected")
         return community_info
 
     def _summarize_communities(self, community_info):
@@ -319,6 +329,7 @@ class GraphRAGStore(SimplePropertyGraphStore):
         """Returns the community summaries, building them if not already done."""
         if not self.community_summary:
             self.build_communities()
+        print("Community summaries collected")
         return self.community_summary
 
 
@@ -361,6 +372,7 @@ class GraphRAGQueryEngine(CustomQueryEngine):
             for _, community_summary in community_summaries.items()
         ]
         final_answer = self.aggregate_answers(community_answers)
+        print("custom query answer generated")
         return final_answer
 
     def generate_answer_from_summary(self, community_summary, query):
@@ -376,6 +388,7 @@ class GraphRAGQueryEngine(CustomQueryEngine):
         ]
         response = self.llm.chat(messages)
         cleaned_response = re.sub(r"^assistant:\s*", "", str(response)).strip()
+        print("answer generated from summary")
         return cleaned_response
 
     def aggregate_answers(self, community_answers):
@@ -387,6 +400,7 @@ class GraphRAGQueryEngine(CustomQueryEngine):
         ]
         final_response = self.llm.chat(messages)
         cleaned_final_response = re.sub(r"^assistant:\s*", "", str(final_response)).strip()
+        print("answers aggregated")
         return cleaned_final_response
 
 
@@ -406,6 +420,7 @@ splitter = SentenceSplitter(
     chunk_overlap=20,
 )
 nodes = splitter.get_nodes_from_documents(documents)
+print("nodes created")
 
 
 # Step 2: Build ProperGraphIndex using GraphRAGExtractor and GraphRAGStore
@@ -458,20 +473,23 @@ kg_extractor = GraphRAGExtractor(
     max_paths_per_chunk=2,
     parse_fn=parse_fn,
 )
+print("kg_extractor done")
 
 index = PropertyGraphIndex(
     nodes=nodes,
     property_graph_store=GraphRAGStore(),
-    kg_extractor=[kg_extractor],
+    kg_extractors=[kg_extractor],
     show_progress=True,
 )
-
+print("index done")
 print(list(index.property_graph_store.graph.relations.values())[-1])
 
 index.property_graph_store.build_communities()
+print("communities built")
 query_engine = GraphRAGQueryEngine(
     graph_store=index.property_graph_store, llm=llm
 )
+print("query engine done")
 
 response = query_engine.query(
     "What are the main news discussed in the document?"
