@@ -2,7 +2,7 @@ import re
 from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.llms import LLM
 from llama_index.core.query_engine import CustomQueryEngine
-from graphrag_llamaindex import GraphRAGStore
+from graph_rag_store import GraphRAGStore
 
 
 class GraphRAGQueryEngine(CustomQueryEngine):
